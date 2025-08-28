@@ -10,6 +10,8 @@ import org.joml.Vector2i
 
 /**
  * when this works, we can implement Conv1d using Conv2d? -> yes, but we don't want to over-complicate things...
+ *
+ * todo try splitting and joining weights by smartly allocating them: A -> B | C -> D can just be A[2n x m],B[n x m],C[n x m],D[2n x m]
  * */
 class ConvolutionalLayer2d private constructor(
     val inputSeriesSize: Vector2i,
@@ -68,7 +70,7 @@ class ConvolutionalLayer2d private constructor(
             "   for(int noiy=0;noiy<${numOutputsPerKernel.y};noiy++){\n" +
             "       for(int noix=0;noix<${numOutputsPerKernel.x};noix++){\n" +
             "           int niix = clamp(noix + localWeightX + ${offset.x}, 0, ${inputSeriesSize.x - 1});\n" +
-            "           int niiy = clamp(noiy + localWeightX + ${offset.y}, 0, ${inputSeriesSize.y - 1});\n" +
+            "           int niiy = clamp(noiy + localWeightY + ${offset.y}, 0, ${inputSeriesSize.y - 1});\n" +
             "           int ni = inAttrIndex * ${inputSeriesSize.x * inputSeriesSize.y} + niiy * ${inputSeriesSize.x} + niix;\n" +
             "           int no = outAttrIndex * ${numOutputsPerKernel.x * numOutputsPerKernel.y} + noiy * ${numOutputsPerKernel.x} + noix;\n" +
             "           float inputI = getInput(bi,ni);\n" +
@@ -95,12 +97,12 @@ class ConvolutionalLayer2d private constructor(
 
     override fun applyForward(network: CPUNetwork, bi: Int, no: Int) {
 
-        val numOutputsPerKernel = (numOutputsPerKernel.x * numOutputsPerKernel.y)
-        val seriesIndex = no % numOutputsPerKernel
-        val seriesIndexX = seriesIndex % inputSeriesSize.x
-        val seriesIndexY = seriesIndex / inputSeriesSize.x
+        val numOutputsPerKernelI = (numOutputsPerKernel.x * numOutputsPerKernel.y)
+        val seriesIndex = no % numOutputsPerKernelI
+        val seriesIndexX = seriesIndex % numOutputsPerKernel.x
+        val seriesIndexY = seriesIndex / numOutputsPerKernel.x
 
-        val outAttrIndex = no / numOutputsPerKernel
+        val outAttrIndex = no / numOutputsPerKernelI
 
         var convSum = 0f
         for (ai in 0 until numInputAttributes) {
@@ -114,7 +116,7 @@ class ConvolutionalLayer2d private constructor(
 
                     // else no clamping necessary
                     val ni = ai * (inputSeriesSize.x * inputSeriesSize.y) + niy * inputSeriesSize.x + nix
-                    // println("$no/$niY/$ci -> $seriesIndex, $attributeIndex, $ni, $weightIndex (${network.getInput(bi, ni)} * ${network.getWeight(weightIndex)})")
+                    // println("$no/$ai/$cix/$ciy -> $seriesIndexX,$seriesIndexY, $outAttrIndex, $nix,$niy,$ni, $weightIndex (${network.getInput(bi, ni)} * ${network.getWeight(weightIndex)})")
                     convSum += network.getInput(bi, ni) * network.getWeight(weightIndex)
                     // println("convSum[$bi,$no] += [$niY,$ci]: ${network.getInput(bi, ni)}[$ni by $niY,$niX] * ${network.getWeight(weightIndex)}[$weightIndex]")
                 }

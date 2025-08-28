@@ -186,7 +186,7 @@ class Conv1dVia2dTest {
     }
 
     @Test
-    fun testLearnFrequencyDetectorDeep() {
+    fun testLearnPhaseDetectorDeep() {
 
         setupGraphics()
 

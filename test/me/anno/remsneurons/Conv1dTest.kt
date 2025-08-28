@@ -170,7 +170,7 @@ class Conv1dTest {
     }
 
     @Test
-    fun testLearnFrequencyDetectorDeep() {
+    fun testLearnPhaseDetectorDeep() {
 
         setupGraphics()
 

@@ -37,17 +37,8 @@ class GPUNetwork private constructor(
     constructor(networkLayout: NetworkLayout, batchSize: Int) :
             this(networkLayout, networkLayout.numInputs, networkLayout.numOutputs, batchSize, networkLayout.numWeights, networkLayout.numNodes)
 
-    fun synchronize() {
-        glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT)
-    }
-
     override fun clearDeltas() {
-        val shader = clearShader
-        shader.use()
-        shader.v1i("bufferSize", networkLayout.numNodes * batchSize)
-        shader.bindBuffer(0, deltas)
-        shader.runBySize(networkLayout.numNodes * batchSize)
-        synchronize()
+        clearBuffer(deltas)
     }
 
     private fun bindOffsets(shader: GPUShader) {
@@ -220,7 +211,21 @@ class GPUNetwork private constructor(
         fun create(name: String, size: Int): OpenGLBuffer {
             val buffer = StaticBuffer(name, attr, size)
             buffer.uploadEmpty(size * 4L)
+            clearBuffer(buffer)
             return buffer
+        }
+
+        fun clearBuffer(buffer: OpenGLBuffer) {
+            val shader = clearShader
+            shader.use()
+            shader.v1i("bufferSize", buffer.elementCount)
+            shader.bindBuffer(0, buffer)
+            shader.runBySize(buffer.elementCount)
+            synchronize()
+        }
+
+        fun synchronize() {
+            glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT)
         }
 
         data class ForwardKey(val batchSize: Int, val numOutputs: Int, val forward: String)
@@ -334,7 +339,7 @@ class GPUNetwork private constructor(
                         "layout(std430, binding=2) writeonly buffer activatedBuffer1 { float activated[]; };\n" +
 
                         getInIndex + getOutIndex +
-                        getWeight + getInput + setOutSum +
+                        safeClamp + getWeight + getInput + setOutSum +
 
                         "void main(){\n" +
                         "   int bi = int(gl_GlobalInvocationID.x);\n" +
@@ -365,7 +370,7 @@ class GPUNetwork private constructor(
                         "layout(std430, binding=3)          buffer deltasBuffer1    { float deltas[]; };\n" +
 
                         getInIndex + getOutIndex +
-                        getWeight + setWeight +
+                        safeClamp + getWeight + setWeight +
                         getInput + getOutDelta + addInDelta +
 
                         "void main(){\n" +
@@ -377,11 +382,16 @@ class GPUNetwork private constructor(
             )
         }
 
+        val safeClamp = "float safeClamp(float value){\n" +
+                "   float maxV = 100.0;\n" +
+                "   return value < maxV ? value > -maxV ? value : -maxV : maxV;\n" +
+                "}\n"
+
         val getWeight = "float getWeight(int weightIndex) {\n" +
                 "   return weights[weightIndex+currWeightOffset];\n" +
                 "}\n"
         val setWeight = "void setWeight(int weightIndex, float value) {\n" +
-                "   weights[weightIndex+currWeightOffset] = value;\n" +
+                "   weights[weightIndex+currWeightOffset] = safeClamp(value);\n" +
                 "}\n"
 
         val getInIndex = "int getInIndex(int bi,int ni) { return bi*numInputs+ni+currInputOffset; }\n"
@@ -394,10 +404,10 @@ class GPUNetwork private constructor(
                 "   return deltas[getOutIndex(bi,no)];\n" +
                 "}\n"
         val addInDelta = "void addInDelta(int bi, int ni, float delta) {\n" +
-                "   atomicAdd(deltas[getInIndex(bi,ni)], delta);\n" +
+                "   atomicAdd(deltas[getInIndex(bi,ni)], safeClamp(delta));\n" +
                 "}\n"
         val setOutSum = "void setOutSum(int bi, int no, float value) {\n" +
-                "   activated[getOutIndex(bi,no)] = value;\n" +
+                "   activated[getOutIndex(bi,no)] = safeClamp(value);\n" +
                 "}\n"
 
     }
