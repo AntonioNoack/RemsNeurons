@@ -11,6 +11,6 @@ open class LeakyReLu(val leak: Float = 0.05f) : Activation(
             val value = activated[i]
             if (value < 0f) deltas[i] *= leak
         }
-    }, "float value = sums[i]; activated[i] = max(value, value * $leak);\n",
+    }, "float value = activated[i]; activated[i] = max(value, value * $leak);\n",
     "if(activated[i] < 0.0) deltas[i] *= $leak;\n", false
 )

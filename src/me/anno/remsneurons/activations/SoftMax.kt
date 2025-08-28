@@ -20,11 +20,11 @@ object SoftMax : Activation(
     }, "" +
             "float sum = 0.0;" +
             "for(int i=i0;i<i1;i++) {\n" +
-            "   sum += min(exp(sums[i]),1e30);\n" +
+            "   sum += min(exp(activated[i]),1e30);\n" +
             "}\n" +
             "float factor = 1.0 / sum;\n" +
             "for(int i=i0;i<i1;i++) {\n" +
-            "   activated[i] = min(exp(sums[i]),1e30) * factor;\n" +
+            "   activated[i] = min(exp(activated[i]),1e30) * factor;\n" +
             "}\n",
     "", true
 )
