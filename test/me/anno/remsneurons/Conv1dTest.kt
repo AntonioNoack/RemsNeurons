@@ -1,12 +1,17 @@
 package me.anno.remsneurons
 
+import me.anno.maths.Maths.TAUf
 import me.anno.remsneurons.NetworkGradientTest.Companion.forEachNetwork
 import me.anno.remsneurons.NetworkGradientTest.Companion.setupGraphics
 import me.anno.remsneurons.activations.Identity
+import me.anno.remsneurons.activations.Sigmoid
 import me.anno.remsneurons.layers.ConvolutionalLayer1d
+import me.anno.remsneurons.layers.FullyConnectedLayer
 import me.anno.remsneurons.network.CPUNetwork
 import me.anno.utils.assertions.assertEquals
 import org.junit.jupiter.api.Test
+import kotlin.math.cos
+import kotlin.math.sin
 import kotlin.random.Random
 
 class Conv1dTest {
@@ -161,6 +166,55 @@ class Conv1dTest {
             assertEquals(+0f, weights[9], 0.1f)
             assertEquals(-1f, weights[10], 0.1f)
             assertEquals(+1f, weights[11], 0.1f)
+        }
+    }
+
+    @Test
+    fun testLearnFrequencyDetectorDeep() {
+
+        setupGraphics()
+
+        var len = 64
+
+        val layout = NetworkLayout()
+        layout.addLayer(ConvolutionalLayer1d(len, 1, 7, false, 5, Sigmoid)); len -= 6
+        layout.addLayer(ConvolutionalLayer1d(len, 5, 7, false, 5, Sigmoid)); len -= 6
+        layout.addLayer(FullyConnectedLayer(len * 5, 10, Sigmoid))
+        layout.addLayer(FullyConnectedLayer(10, 2, Identity))
+
+        val batchSize = 8
+        forEachNetwork(layout, batchSize) { network ->
+            val rnd = Random(1543)
+            network.initializeWeights(rnd)
+
+            val params = LearningParams(1f / batchSize, false)
+            val n = 500
+            val bn = n / 10
+            var lastError = Float.POSITIVE_INFINITY
+            repeat(n) { it ->
+
+                for (bi in 0 until batchSize) {
+
+                    val frequency = 0.1f
+                    val phase = rnd.nextFloat() * TAUf
+
+                    network.setTarget(bi, 0, cos(phase))
+                    network.setTarget(bi, 1, sin(phase))
+
+                    for (ni in 0 until len) {
+                        network.setInput(bi, ni, sin(phase + ni * frequency))
+                    }
+                }
+
+                val print = it % bn == 0 || it == n - 1
+                val error = network.learn(params, print)
+                if (print) println("[$batchSize,$it] Error: $error")
+
+                lastError = error
+
+            }
+
+            assertEquals(0f, lastError, 0.05f)
         }
     }
 }
