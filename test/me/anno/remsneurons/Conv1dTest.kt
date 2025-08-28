@@ -107,7 +107,14 @@ class Conv1dTest {
             println("Initial weights: ${network.inspectWeights().toList()}")
 
             val params = LearningParams(1f / batchSize, false)
-            repeat(10) { it ->
+            val n = 10
+            repeat(n) { it ->
+
+                // clear state
+                for (i in 0 until 20) {
+                    network.setInput(0, i, 0f)
+                    network.setTarget(0, i, 0f)
+                }
 
                 val i0 = rnd.nextInt(1, 9)
                 val i1 = rnd.nextInt(10, 19)
@@ -124,15 +131,20 @@ class Conv1dTest {
                 network.setTarget(0, i1 - 1, +v1)
                 network.setTarget(0, i1 + 0, -v1)
 
-                val error = network.learn(params, true)
+                if (true) {
 
-                println("[$batchSize,$it] Deltas: ${network.inspectDeltas().toList()}")
-                println("[$batchSize,$it] Error: $error, Weights: ${network.inspectWeights().toList()}")
+                    val print = it % 2 == 0 || it == n - 1
+                    val error = network.learn(params, print)
+                    if (print) println("[$batchSize,$it] Error: $error, Weights: ${network.inspectWeights().toList()}")
 
-                // clear state
-                for (i in 0 until 20) {
-                    network.setInput(0, i, 0f)
-                    network.setTarget(0, i, 0f)
+                } else {
+
+                    val error = network.learn(params, true)
+
+                    println("[$batchSize,$it] Values: ${network.inspectActivated().toList()}")
+                    println("[$batchSize,$it] Deltas: ${network.inspectDeltas().toList()}")
+                    println("[$batchSize,$it] Error: $error, Weights: ${network.inspectWeights().toList()}")
+                    println()
                 }
             }
 

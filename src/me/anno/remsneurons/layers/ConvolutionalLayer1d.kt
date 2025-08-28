@@ -57,15 +57,13 @@ class ConvolutionalLayer1d private constructor(
             "       int no = outAttrIndex * $numOutputsPerKernel + noi;\n" +
             "       float inputI = getInput(bi,ni);\n" +
             "       float delta = getOutDelta(bi,no);\n" +
-            //"       deltaWeight += inputI * delta;" +
-            "deltaWeight = delta;\n" +
-            "break;\n" +
+            "       deltaWeight += inputI * delta;" +
             "       if(gradient) {\n" +
             "           addInDelta(bi,ni,originalWeight*delta);\n" +
             "       }\n" +
             "   }\n" +
             "}\n" +
-            "setWeight(weightIndex,/*originalWeight + learningRate **/ deltaWeight);\n"
+            "setWeight(weightIndex, originalWeight + learningRate * deltaWeight);\n"
 ) {
 
     constructor(
