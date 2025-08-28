@@ -196,10 +196,12 @@ class NetworkGradientTest {
                     println("[$batchSize,$it] Error: $error, Weights: ${weights.toList()}")
                     assertTrue(error > 0f, "Something is wrong :(")
                 }
+
+                val weights = network.inspectWeights()
+                val product = weights.reduce { a, b -> a * b }
+                assertEquals(0.5f, product, 0.1f)
             }
         }
-
-        // todo this needs validation
     }
 
     @Test

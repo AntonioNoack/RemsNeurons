@@ -36,7 +36,7 @@ class FullyConnectedLayer(
             "       addInDelta(bi,ni,deltaSum);\n" +
             "   }\n" +
             "}\n" +
-            "setWeight(weightIndex,originalWeight + learningRate * deltaWeight);\n"
+            "setWeight(weightIndex, originalWeight + learningRate * deltaWeight);\n"
 ) {
 
     override fun applyForward(network: CPUNetwork, bi: Int, no: Int) {

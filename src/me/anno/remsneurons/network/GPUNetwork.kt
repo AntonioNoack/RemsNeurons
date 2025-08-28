@@ -142,7 +142,7 @@ class GPUNetwork private constructor(
         shader.use()
         bindOffsets(shader)
         shader.v1f("learningRate", learningParams.learningRate)
-        shader.v1b("notFirstLayer", layer !== networkLayout.layers.first())
+        shader.v1b("gradient", layer !== networkLayout.layers.first())
         shader.bindBuffer(0, weights)
         shader.bindBuffer(1, currInputs) // input - weights > values
         shader.bindBuffer(2, activated)
