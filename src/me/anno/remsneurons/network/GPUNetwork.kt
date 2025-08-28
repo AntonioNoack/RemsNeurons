@@ -68,7 +68,7 @@ class GPUNetwork private constructor(
         shader.bindBuffer(0, weights)
         shader.bindBuffer(1, currInputs) // input - weights > values
         shader.bindBuffer(2, activated)
-        shader.runBySize(batchSize)
+        shader.runBySize(batchSize, currNumOutputs)
         synchronize()
 
         runActivation(layer)
@@ -147,7 +147,7 @@ class GPUNetwork private constructor(
         shader.bindBuffer(1, currInputs) // input - weights > values
         shader.bindBuffer(2, activated)
         shader.bindBuffer(3, deltas)
-        shader.runBySize(layer.numInputs, layer.numOutputs)
+        shader.runBySize(layer.numWeights)
         synchronize()
     }
 
