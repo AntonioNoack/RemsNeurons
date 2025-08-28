@@ -9,7 +9,6 @@ import me.anno.utils.types.Strings.iff
 
 class ConvolutionalLayer1d private constructor(
     val inputSeriesSize: Int,
-
     val numInputAttributes: Int,
 
     val convSize: Int,
@@ -34,12 +33,12 @@ class ConvolutionalLayer1d private constructor(
             "int seriesIndex = no % $numOutputsPerKernel;\n" +
             "int outAttrIndex = no / $numOutputsPerKernel;\n" +
             "float convSum = 0.0;\n" +
-            "for(int niY=0;niY<$numInputAttributes;niY++){\n" +
+            "for(int ai=0;ai<$numInputAttributes;ai++){\n" +
             "   for(int ci=0;ci<$convSize;ci++){\n" +
-            "       int weightIndex = outAttrIndex * $numWeightsPerKernel + niY * $convSize + ci;\n" +
+            "       int weightIndex = outAttrIndex * $numWeightsPerKernel + ai * $convSize + ci;\n" +
             "       int niX = seriesIndex + $offset + ci;\n" +
             "       niX = clamp(niX,0,${inputSeriesSize - 1});\n".iff(padEnds) +
-            "       int ni = niY * $inputSeriesSize + niX;\n" +
+            "       int ni = ai * $inputSeriesSize + niX;\n" +
             "       convSum += getInput(bi,ni) * getWeight(weightIndex);\n" +
             "   }\n" +
             "}\n" +
@@ -82,16 +81,16 @@ class ConvolutionalLayer1d private constructor(
         val outAttrIndex = no / numOutputsPerKernel
 
         var convSum = 0f
-        for (niY in 0 until numInputAttributes) {
+        for (ai in 0 until numInputAttributes) {
             for (ci in 0 until convSize) {
-                val weightIndex = outAttrIndex * numWeightsPerKernel + niY * convSize + ci
+                val weightIndex = outAttrIndex * numWeightsPerKernel + ai * convSize + ci
                 var niX = seriesIndex + offset + ci
                 if (padEnds) niX = clamp(niX, 0, inputSeriesSize - 1)
                 // else no clamping necessary
-                val ni = niY * inputSeriesSize + niX
-                // println("$no/$niY/$ci -> $seriesIndex, $attributeIndex, $ni, $weightIndex (${network.getInput(bi, ni)} * ${network.getWeight(weightIndex)})")
+                val ni = ai * inputSeriesSize + niX
+                // println("$no/$ai/$ci -> $seriesIndex, $attributeIndex, $ni, $weightIndex (${network.getInput(bi, ni)} * ${network.getWeight(weightIndex)})")
                 convSum += network.getInput(bi, ni) * network.getWeight(weightIndex)
-                // println("convSum[$bi,$no] += [$niY,$ci]: ${network.getInput(bi, ni)}[$ni by $niY,$niX] * ${network.getWeight(weightIndex)}[$weightIndex]")
+                // println("convSum[$bi,$no] += [$ai,$ci]: ${network.getInput(bi, ni)}[$ni by $ai,$niX] * ${network.getWeight(weightIndex)}[$weightIndex]")
             }
         }
         // println("[$bi,$no] = $convSum")
@@ -114,7 +113,7 @@ class ConvolutionalLayer1d private constructor(
         var deltaWeight = 0f
         for (bi in 0 until network.batchSize) {
             for (noi in 0 until numOutputsPerKernel) {
-                val nii = clamp(noi + localWeightX + offset, 0, inputSeriesSize - 1) // todo is this offset correct here?
+                val nii = clamp(noi + localWeightX + offset, 0, inputSeriesSize - 1)
                 // if (nii !in 0 until inputSeriesSize) continue // edge case, quite literally
 
                 val ni = inAttrIndex * inputSeriesSize + nii
